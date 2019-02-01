@@ -1,0 +1,53 @@
+body {
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+
+
+
+#blocker {
+    width: 100vw;
+    height: 100vh;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 45px;
+    flex-direction: column;
+}
+
+
+#blocker button {
+    height: 100px;
+    width: 250px;
+    font-size: inherit;
+}
+
+#blocker input {
+    height: 55px;
+    margin: 25px;
+    width: 45%;
+}
+
+
+#chat {
+    position: absolute;
+    bottom: 0;
+    width: 300px;
+    height: 250px;
+    border: 1px solid white;
+    left: 0;
+
+}
