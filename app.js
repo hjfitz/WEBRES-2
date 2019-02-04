@@ -68,7 +68,7 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use('/scripts', express.static(path.join(__dirname, 'node_modules/three/build')));
+app.use('/scripts', express.static(path.join(__dirname, 'node_modules/three.terrain.js/build')));
 // app.use('/scripts', express.static(path.join(__dirname, 'node_modules/three-orbit-controls')));
 app.use(express.static(path.join(__dirname, 'public')));
 

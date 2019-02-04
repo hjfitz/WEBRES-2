@@ -39,16 +39,23 @@
 
 		<script src="./three/js/loaders/DRACOLoader.js"></script>
 		<script src="./three/js/loaders/GLTFLoader.js"></script>
+		<script src="./three/js/loaders/OBJLoader.js"></script>
+		<script src="./three/js/loaders/MTLLoader.js"></script>
 
 		<script src="./three/js/Car.js"></script>
-
+        <script type="text/javascript" src="./three/physi/physi.js"></script>
 		<script src="./three/js/WebGL.js"></script>
 		<script src="./three/js/libs/stats.min.js"></script>
         <script src="./three/js/controls/PointerLockControls.js"></script>
+        <script src="/scripts/THREE.Terrain.min.js"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
 
 		<script>
+
+            Physijs.scripts.worker = '/three/physi/physijs_worker.js'
+            Physijs.scripts.ammo = '/three/physi/ammo.js';
+
 
 			if ( WEBGL.isWebGLAvailable() === false ) {
 
@@ -56,7 +63,7 @@
 
 			}
 
-			var camera, scene, renderer, stats, carModel, materialsLib, envMap, controls;
+			var camera, scene, renderer, stats, carModel, materialsLib, envMap, controls,physObject,vehicle, input;
 
 			var bodyMatSelect = document.getElementById( 'body-mat' );
 			var rimMatSelect = document.getElementById( 'rim-mat' );
@@ -66,7 +73,7 @@
 			var clock = new THREE.Clock();
 			var car = new THREE.Car();
 			car.turningRadius = 75;
-			car.maxSpeed = 10
+			car.maxSpeed = 50
 
 			var carParts = {
 				body: [],
@@ -79,26 +86,33 @@
 			var cameraTarget = new THREE.Vector3();
 			var origin = new THREE.Vector3();
 
-			function init() {
+
+            function generateRandomNumber(min_value , max_value)
+            {
+                return Math.random() * (max_value-min_value) + min_value ;
+            }
+
+            function init() {
 
 				var container = document.getElementById( 'container' );
 
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 50 );
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
+                camera.position.set( 3.25, 2.0, -5 );
 
                 controls = new THREE.PointerLockControls( camera );
 
-                controls.getObject().position.set( -0.4, 1,0.25 )
+                //controls.getObject().position.set( -0.4, 1,0.25 )
 
-				scene = new THREE.Scene();
-				scene.fog = new THREE.Fog( 0xd7cbb1, 1, 80 );
+                scene = new Physijs.Scene;
+                scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
+				//scene.fog = new THREE.Fog( 0xd7cbb1, 1, 80 );
 
 				envMap = new THREE.CubeTextureLoader()
 					.setPath( './three/textures/skyboxsun25deg/')
 					.load( [ 'px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg' ] );
 
 				scene.background = envMap;
-
 
 
                 var grassTex = THREE.ImageUtils.loadTexture('./three/textures/terrain/grasslight-big.jpg');
@@ -118,9 +132,122 @@
 
                 var groundMat = new THREE.MeshBasicMaterial({map:grassTex});
 
-				var ground = new THREE.Mesh(new THREE.PlaneBufferGeometry( 1000, 2400 ), groundMat);
-				ground.rotation.x = - Math.PI / 2;
-				ground.position.y = -0.1
+                // Materials
+                ground_material = Physijs.createMaterial(
+                    groundMat,
+                    .8, // high friction
+                    .4 // low restitution
+                );
+
+                var ambientLight = new THREE.AmbientLight('#fff');
+                scene.add(ambientLight);
+
+
+                // Generate a terrain
+                var xS = 90, yS = 90;
+                terrainScene = THREE.Terrain({
+                    easing: THREE.Terrain.InEaseOut(),
+                    heightmap:THREE.Terrain.Hill,
+                    material: groundMat,
+                    maxHeight: 128,
+                    minHeight: -128,
+                    steps: 1,
+                    useBufferGeometry: false,
+                    xSegments: xS,
+                    xSize: 2000,
+                    ySegments: yS,
+                    ySize: 2000,
+                });
+
+                var ground_geometry = new THREE.PlaneGeometry( 300, 300, 100, 100 );
+
+                ground = new Physijs.HeightfieldMesh (
+                    //terrainScene.children[0].geometry,
+                    ground_geometry,
+                    ground_material,
+                    0 // mass
+                );
+
+                console.log(terrainScene)
+
+
+
+
+               ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                scene.add( ground );
+
+
+
+                // for (let i of ground.geometry.vertices) {
+                //     i.z = generateRandomNumber(0,-50)
+                //     console.log(i.y)
+                // }
+
+
+               //  var path = new THREE.Path();
+               //
+               //  path.lineTo( 0, 7 );
+               //  //path.quadraticCurveTo( 0, 1, 0.2, 1 );
+               // // path.lineTo( 1, 1 );
+               //  path.lineTo( 7, 7 );
+               //
+               //  path.lineTo( 7, 0 );
+               //
+               //  path.lineTo( 0, 0 );
+
+               //
+               //
+               //  var points = path.getPoints();
+               //
+               //  var geometry = new THREE.BufferGeometry().setFromPoints( points );
+               //  var material = new THREE.LineBasicMaterial( { color: 'black' } );
+               //
+               //  var line = new THREE.Line( geometry, material );
+               //
+               //  line.position.z = -10
+               // // line.rotation.x =   Math.PI / 2;
+               //  scene.add( line );
+
+
+
+
+
+                // let heightMap = new Image();
+                // heightMap.src = '/heightmap.png'
+                //
+                //
+
+
+                console.log(terrainScene)
+                //trees
+
+                // var objLoader = new THREE.OBJLoader();
+                // // objLoader.setMaterials( materials );
+                // objLoader.load( '/three/models/lowtree.obj', function ( tree ) {
+                //     var geo = terrainScene.children[0].geometry;
+                //     // Add randomly distributed foliage
+                //     decoScene = THREE.Terrain.ScatterMeshes(geo, {
+                //         mesh: tree,
+                //         w: xS,
+                //         h: yS,
+                //         spread: 0.2,
+                //         randomness: Math.random,
+                //     });
+                //     terrainScene.add(decoScene);
+                //
+                // } );
+
+
+                // for (let i of terrainScene.children[0].geometry.vertices) {
+                //     console.log(i.z)
+                // }
+
+
+
+                // Assuming you already have your global scene, add the terrain to it
+               //scene.add(terrainScene);
+
 
 
                 var roadMat = new THREE.MeshBasicMaterial({map:roadTex});
@@ -128,13 +255,12 @@
                 road.rotation.x = - Math.PI / 2;
 
 
-				scene.add( ground );
-                scene.add( road );
-                scene.add( controls.getObject() );
 
-              var hemiLight = new THREE.HemisphereLight( 0x7c849b, 0xd7cbb1, 0.1 );
-              hemiLight.position.set( 0, 1, 0 );
-              scene.add( hemiLight );
+				//scene.add( ground );
+                //scene.add( road );
+                scene.add( camera);
+
+
 
               var shadowLight  = new THREE.DirectionalLight( 0xffffee, 0.1 );
               shadowLight.position.set( -1.5, 1.25, -1.5 );
@@ -163,8 +289,8 @@
 				container.appendChild( stats.dom );
 
 				initCar();
+                //initDiffCar()
 				initMaterials();
-				//initMaterialSelectionMenus();
 
 				window.addEventListener( 'resize', onWindowResize, false );
 
@@ -178,6 +304,121 @@
 
 			}
 
+			function initDiffCar() {
+                var mtlLoader = new THREE.MTLLoader();
+                mtlLoader.setPath( './three/models/F1 Mclaren/' );
+                var url = "McLaren 2001.mtl";
+                mtlLoader.load( url, function( materials ) {
+
+                    materials.preload();
+
+                    console.log(materials)
+
+                    var objLoader = new THREE.OBJLoader();
+                    objLoader.setMaterials( materials )
+                    objLoader.load( './three/models/lambo/Avent.obj', function ( object ) {
+
+
+                        var mesh = new Physijs.BoxMesh(
+                            object.children[0].geometry,
+                            object.children[0].materials
+                        );
+
+                        console.log(object)
+
+
+                       vehicle = new Physijs.Vehicle(mesh, new Physijs.VehicleTuning(
+                            7.88,
+                            1.83,
+                            1.28,
+                            500,
+                            10.5,
+                            6000
+                        ));
+
+                        object.position.set(0,1,-20)
+                        vehicle.mesh.position.set(0,4,-20)
+
+
+                        scene.add( vehicle );
+                        //scene.add( object );
+                        //scene.add( mesh );
+
+                        input = {
+                            power: null,
+                            direction: null,
+                            steering: 0
+                        };
+
+
+
+                        // for ( var i = 0; i < 4; i++ ) {
+                        //
+                        //     let wheel = new THREE.CylinderBufferGeometry(0.3,0.3,0.5,64, 64)
+                        //
+                        //
+                        //
+                        //     vehicle.addWheel(
+                        //         wheel,
+                        //         new THREE.MeshBasicMaterial( {color: 0xffff00, wireframe:true} ),
+                        //         new THREE.Vector3(
+                        //             i % 2 === 0 ? -0.95 : 0.95,
+                        //             -1,
+                        //             i < 2 ? 2.4 : -2.4
+                        //         ),
+                        //         new THREE.Vector3( 0, -1, 0 ),
+                        //         new THREE.Vector3( -1, 0, 0 ),
+                        //         0.7,
+                        //         0.7,
+                        //         i < 2 ? false : true
+                        //     );
+                        // }
+
+
+                        document.addEventListener('keydown', function( ev ) {
+                            switch ( ev.keyCode ) {
+                                case 37: // left
+                                    input.direction = 1;
+                                    console.log('yy')
+                                    break;
+                                case 38: // forward
+                                    input.power = true;
+                                    break;
+                                case 39: // right
+                                    input.direction = -1;
+                                    break;
+                                case 40: // back
+                                    input.power = false;
+                                    break;
+                            }
+                        });
+                        document.addEventListener('keyup', function( ev ) {
+                            switch ( ev.keyCode ) {
+                                case 37: // left
+                                    input.direction = null;
+                                    break;
+                                case 38: // forward
+                                    input.power = null;
+                                    break;
+                                case 39: // right
+                                    input.direction = null;
+                                    break;
+                                case 40: // back
+                                    input.power = null;
+                                    break;
+                            }
+                        });
+
+
+
+
+
+
+                    });
+
+                });
+            }
+
 			function initCar() {
 
 				THREE.DRACOLoader.setDecoderPath( './three/js/libs/draco/gltf/' );
@@ -187,14 +428,47 @@
 
 				loader.load( './three/models/gltf/ferrari.glb', function( gltf ) {
 
+
 					carModel = gltf.scene.children[ 0 ];
 
+
 					// add lightHolder to car so that the shadow will track the car as it moves
-					carModel.add( lightHolder );
+					carModel.add( lightHolder )
+
+
+                    //var physGeom = new THREE.PlaneGeometry(2, 1,5);
+
+                    var physGeom = new THREE.CubeGeometry(3, 0.5,4);
+                    var physMaterial = new Physijs.createMaterial(new THREE.MeshBasicMaterial({color:'yellow'}));
+                    physMaterial.visible = true;
+                    physObject = new Physijs.BoxMesh(physGeom, physMaterial,1);
+
+
+
+
+                    var wall = new THREE.CubeGeometry(50, 50,48);
+                    wallObj = new Physijs.BoxMesh(wall, new Physijs.createMaterial(new THREE.MeshBasicMaterial({color:'red'})),0);
+                    wallObj.position.set(0,3,-65)
+                    //scene.add(wallObj);
+
+                    //
+                    physObject.position.set(0,3,0)
+
+
+                    //parents the complex graphics model to the simple collision geometry
+
+
+                    //apply any offset transform between the graphics model and physics object
+                    //carModel.position.y = -0.5;
+
+                    //add the phys/three hierarchy to the scene
+                    //
+
 
 					carModel.add(controls.getObject())
 
-					car.setModel( carModel );
+
+
 
 					carModel.traverse( function ( child ) {
 
@@ -204,9 +478,28 @@
 							child.receiveShadow = true;
 							child.material.envMap = envMap;
 
-						}
+
+                            //var x  = new Physijs.BoxMesh(child.geometry,child.material,1);
+                            // var x  = new Physijs.BoxMesh(child.geometry,child.material,1);
+                            // //x.rotateX(-10)
+                            //
+                            // x.rotateY(-40)
+                            //
+                            // x.rotateY(-40)
+                            // test.add(x)
+                            // scene.add(test)
+
+
+                            var x  = new Physijs.BoxMesh(child.geometry,child.material,1);
+                            //carModel.add(x)
+
+                        }
 
 					} );
+
+
+
+
 
 					// shadow
 					var texture = new THREE.TextureLoader().load( './three/models/gltf/ferrari_ao.png' );
@@ -217,11 +510,29 @@
 					shadow.renderOrder = 2;
 					carModel.add( shadow );
 
-					let car2 = carModel.clone()
-                    car2.position.setZ(-100)
+                    physObject.add(carModel);
+                    //car.setModel(physObject)
 
-					scene.add( carModel );
-                    scene.add( car2 );
+                    vehicle = new Physijs.Vehicle(physObject, new Physijs.VehicleTuning(
+                        7.88,
+                        1.83,
+                        1.28,
+                        500,
+                        10.5,
+                        6000
+                    ));
+
+
+                    input = {
+                        power: null,
+                        direction: null,
+                        steering: 0
+                    };
+
+
+
+                    scene.add(physObject);
+
 
 					// car parts for material selection
 					carParts.body.push( carModel.getObjectByName( 'body' ) );
@@ -299,16 +610,50 @@
 				var delta = clock.getDelta();
 
 
-				if ( carModel ) {
+				if ( physObject ) {
+                    car.update( delta / 3 );
 
-					car.update( delta / 3 );
-					lightHolder.rotation.y = -carModel.rotation.y;
+                    physObject.getWorldPosition( cameraTarget );
+                    cameraTarget.y = 2.5;
+                    cameraTarget.z += distance + 3;
+                    camera.position.lerp( cameraTarget, delta * damping );
+                    camera.lookAt( physObject.position );
 
 				}
 
-				stats.update();
+				if (physObject) {
 
-			}
+                    this.velocity = new THREE.Vector3();
+                    this.velocity.z = -15
+
+                    physObject.setLinearVelocity(this.velocity);
+
+                }
+
+
+                if ( input && vehicle ) {
+                    if ( input.direction !== null ) {
+                        input.steering += input.direction / 50;
+                        if ( input.steering < -.6 ) input.steering = -.6;
+                        if ( input.steering > .6 ) input.steering = .6;
+                    }
+                    vehicle.setSteering( input.steering, 0 );
+                    vehicle.setSteering( input.steering, 1 );
+                    if ( input.power === true ) {
+                        vehicle.applyEngineForce( 300 );
+                    } else if ( input.power === false ) {
+                        vehicle.setBrake( 20, 2 );
+                        vehicle.setBrake( 20, 3 );
+                    } else {
+                        vehicle.applyEngineForce( 0 );
+                    }
+                }
+
+
+				stats.update();
+                scene.simulate();
+
+            }
 
             window.play.addEventListener( 'click', function () {
               document.body.requestPointerLock()
