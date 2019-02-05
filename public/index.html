@@ -37,6 +37,7 @@
 
 		<script src="./three/build/three.js"></script>
 		<script src="./three/js/loaders/DRACOLoader.js"></script>
+		<script src="./three/js/loaders/OBJLoader.js"></script>
 		<script src="./three/js/loaders/GLTFLoader.js"></script>
 		<script src="./three/js/Car.js"></script>
 		<script src="./three/js/WebGL.js"></script>
@@ -167,6 +168,7 @@
 
 				initCar();
 				initMaterials();
+              createTrees()
 				//initMaterialSelectionMenus();
 
 				window.addEventListener( 'resize', onWindowResize, false );
@@ -180,6 +182,23 @@
 				} );
 
 			}
+
+
+			function createTrees() {
+              var objLoader = new THREE.OBJLoader();
+
+              objLoader.load( '/three/models/tree.obj', function ( tree ) {
+
+                var treeBox = new THREE.Mesh( new THREE.CylinderGeometry( 1, 1, 10, 5), new THREE.MeshBasicMaterial({color:'green'}) );
+                treeBox.add(tree)
+                //treeBox.material.side.visible
+                treeBox.visible = false;
+                treeBox.position.set(-20,0,-10)
+                scene.add(treeBox)
+                collidableMeshList.push(treeBox)
+              })
+
+            }
 
 
 
@@ -206,7 +225,7 @@
 
                       let collisionResults = ray.intersectObjects( collidableMeshList );
 
-                        if ( collisionResults.length > 0 && collisionResults[0].distance < 1)
+                        if ( collisionResults.length > 0 && collisionResults[0].distance < 3)
                         {
                           console.log(collisionResults)
 
