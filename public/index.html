@@ -63,7 +63,7 @@
 			let clock = new THREE.Clock();
 			let car = new THREE.Car();
 			car.turningRadius = 75;
-			car.maxSpeed = 10
+			car.maxSpeed = 25
 
 			let carParts = {
 				body: [],
@@ -80,7 +80,7 @@
 
 				let container = document.getElementById( 'container' );
 
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 350 );
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 50 );
 
                 controls = new THREE.PointerLockControls( camera );
 
@@ -113,13 +113,14 @@
 
                 let groundMat = new THREE.MeshBasicMaterial({map:grassTex});
 
-                let ground = new THREE.Mesh(new THREE.PlaneBufferGeometry( 1000, 2400 ), groundMat);
+                let ground = new THREE.Mesh(new THREE.PlaneBufferGeometry( 300, 300 ), groundMat);
                 ground.rotation.x = - Math.PI / 2;
                 ground.position.y = -0.1
 
-                let wall = new THREE.Mesh(new THREE.PlaneBufferGeometry( 1000, 2400 ), groundMat);
+                let wall = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 2 ), groundMat);
                 wall.name = 'wall'
                 wall.position.z = -40
+                wall.material.side = THREE.DoubleSide;
                 collidableMeshList.push(wall)
 
                 scene.add(wall)
@@ -183,23 +184,43 @@
 
 
             function checkCollision() {
-                console.log(car.speed)
+                let bounceVal = Math.abs(car.speed / 2)
+                for (let i = 0; i < physObject.children.length; i++) {
+                  if (physObject.children[i].isMesh) {
 
-                for (let vertexIndex = 0; vertexIndex < physObject.geometry.vertices.length; vertexIndex++)
-                {
-                    let localVertex = physObject.geometry.vertices[vertexIndex].clone();
-                    let globalVertex = physObject.matrix.multiplyVector3(localVertex);
+                    let object = physObject.children[i]
 
-                    let directionVector = globalVertex.sub( physObject.position );
+                    let position = new THREE.Vector3();
+                    object.getWorldPosition(position)
 
-                    let ray = new THREE.Raycaster( physObject.position, directionVector.clone().normalize() );
-                    let collisionResults = ray.intersectObjects( collidableMeshList );
-                    if ( collisionResults.length > 0 && collisionResults[0].distance < directionVector.length() )
+                    for (let vertexIndex = 0; vertexIndex < object.geometry.vertices.length; vertexIndex++)
                     {
-                        car.speed = -2
-                    }
-                }
+                      let localVertex = object.geometry.vertices[vertexIndex].clone();
+                      let globalVertex = object.matrix.multiplyVector3(localVertex);
 
+                      let directionVector = globalVertex.sub( position );
+
+                      // console.log(localVertex, globalVertex, directionVector)
+
+                      let ray = new THREE.Raycaster( position, directionVector.clone().normalize() );
+
+                      let collisionResults = ray.intersectObjects( collidableMeshList );
+
+                        if ( collisionResults.length > 0 && collisionResults[0].distance < 1)
+                        {
+                          console.log(collisionResults)
+
+                          if (object.name == 'front') {
+                              //console.log(bounceVal)
+                              car.speed = -2
+                            } else {
+                              car.speed = 2
+                            }
+                        }
+
+                    }
+                  }
+                }
             }
 
 
@@ -220,16 +241,28 @@
 
 					carModel.add(controls.getObject())
 
-                    let physGeom = new THREE.CubeGeometry(2, 2.5,4.4);
+                    let physGeom = new THREE.CubeGeometry(2, 0.5,4);
                     let physMaterial = new THREE.MeshBasicMaterial({color:'yellow'});
                     physMaterial.visible = false;
                     physObject = new THREE.Mesh( physGeom, physMaterial );
 
+
+                    let frontBlock = new THREE.Mesh(new THREE.CubeGeometry(2, 2.25,2.4,1,1,1), new THREE.MeshBasicMaterial({color:'red'}));
+                    frontBlock.position.z = -1
+                    frontBlock.name = 'front'
+                    frontBlock.visible = false;
+
+
+                    let backBlock = new THREE.Mesh(new THREE.CubeGeometry(2, 2.25,2,1,1,1), new THREE.MeshBasicMaterial({color:'black'}) );
+                    backBlock.position.z = 1
+                    backBlock.name = 'back'
+                    backBlock.visible = false;
+
+                    physObject.add(frontBlock)
+                    physObject.add(backBlock)
                     physObject.add(carModel)
 
                     car.setModel( physObject );
-
-
 
 					carModel.traverse( function ( child ) {
 
