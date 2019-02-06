@@ -38,21 +38,28 @@
 		<script src="./three/build/three.js"></script>
 		<script src="./three/js/loaders/DRACOLoader.js"></script>
 		<script src="./three/js/loaders/OBJLoader.js"></script>
+		<script src="./three/js/loaders/MTLLoader.js"></script>
 		<script src="./three/js/loaders/GLTFLoader.js"></script>
 		<script src="./three/js/Car.js"></script>
+		<script src="./three/js/perlin.js"></script>
 		<script src="./three/js/WebGL.js"></script>
 		<script src="./three/js/libs/stats.min.js"></script>
         <script src="./three/js/controls/PointerLockControls.js"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
-
+        <script
+                src="https://code.jquery.com/jquery-3.3.1.min.js"
+                integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+                crossorigin="anonymous"></script>
 		<script>
 
 			if ( WEBGL.isWebGLAvailable() === false ) {
 				document.body.appendChild( WEBGL.getWebGLErrorMessage() );
 			}
 
-			let camera, scene, renderer, stats, carModel, materialsLib, envMap, controls,physObject
+			let camera, scene, renderer, stats, carModel, materialsLib, envMap, controls,physObject, gamepad, roads
+
+            const objLoader = new THREE.OBJLoader();
 
             let collidableMeshList = [];;
 
@@ -64,6 +71,7 @@
 			let clock = new THREE.Clock();
 			let car = new THREE.Car();
 			car.turningRadius = 75;
+
 			car.maxSpeed = 25
 
 			let carParts = {
@@ -81,7 +89,7 @@
 
 				let container = document.getElementById( 'container' );
 
-				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 50 );
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 500 );
 
                 controls = new THREE.PointerLockControls( camera );
 
@@ -105,35 +113,57 @@
                 grassTex.repeat.y = 256;
 
 
-                let roadTex = THREE.ImageUtils.loadTexture('./three/textures/terrain/asphalt.jpg');
-                roadTex.anisotropy = 16
-                roadTex.wrapS = THREE.RepeatWrapping;
-                roadTex.wrapT = THREE.RepeatWrapping;
+                let roughTexture = THREE.ImageUtils.loadTexture('./three/textures/terrain/rough.jpg');
+                roughTexture.anisotropy = 16
+                roughTexture.wrapS = THREE.RepeatWrapping;
+                roughTexture.wrapT = THREE.RepeatWrapping;
+                roughTexture.repeat.x = 50;
+                roughTexture.repeat.y = 50;
 
-                roadTex.repeat.y = 256;
+
+
 
                 let groundMat = new THREE.MeshBasicMaterial({map:grassTex});
+                let roughMat = new THREE.MeshBasicMaterial({map:roughTexture});
 
-                let ground = new THREE.Mesh(new THREE.PlaneBufferGeometry( 300, 300 ), groundMat);
+                var groundMaterials = [];
+                groundMaterials.push(groundMat);
+                groundMaterials.push(roughMat);
+
+
+                let ground = new THREE.Mesh(new THREE.PlaneGeometry( 500, 500, 10,10), groundMaterials)
+                console.log(ground)
                 ground.rotation.x = - Math.PI / 2;
                 ground.position.y = -0.1
 
-                let wall = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 2 ), groundMat);
-                wall.name = 'wall'
-                wall.position.z = -40
-                wall.material.side = THREE.DoubleSide;
-                collidableMeshList.push(wall)
-
-                scene.add(wall)
 
 
-                let roadMat = new THREE.MeshBasicMaterial({map:roadTex});
-                let road = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 2400 ), roadMat);
-                road.rotation.x = - Math.PI / 2;
+                // //mountains
+                // for (var i = 0; i < 4; i++) {
+                //     for (var y = 0 ; y < 7; y++) {
+                //         ground.geometry.vertices[i].z = getRandomInt(5,30)
+                //         ground.geometry.faces[y].materialIndex = 1
+                //     }
+                // }
+                //
+                // for (i = ground.geometry.vertices.length-1; i > ground.geometry.vertices.length - 4; i--) {
+                //     ground.geometry.vertices[i].z = getRandomInt(5,30)
+                //     ground.geometry.faces[--i].materialIndex = 1
+                // }
+
+
+
+                // let wall = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 2 ), groundMat);
+                // wall.name = 'wall'
+                // wall.position.z = -40
+                // wall.material.side = THREE.DoubleSide;
+                // collidableMeshList.push(wall)
+                //
+                // scene.add(wall)
+
 
 
                 scene.add( ground );
-                scene.add( road );
                 scene.add( controls.getObject() );
 
                 let hemiLight = new THREE.HemisphereLight( 0x7c849b, 0xd7cbb1, 0.1 );
@@ -155,6 +185,7 @@
                 lightHolder.add( shadowLight, shadowLight.target );
 
 
+
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.gammaOutput = true;
@@ -168,7 +199,9 @@
 
 				initCar();
 				initMaterials();
-              createTrees()
+                createTrees()
+                createMountains()
+                createRoad()
 				//initMaterialSelectionMenus();
 
 				window.addEventListener( 'resize', onWindowResize, false );
@@ -184,20 +217,162 @@
 			}
 
 
+            function createRoad() {
+                let roadTex = THREE.ImageUtils.loadTexture('./three/textures/terrain/asphalt.jpg');
+                roadTex.anisotropy = 16
+                roadTex.wrapS = THREE.RepeatWrapping;
+                roadTex.wrapT = THREE.RepeatWrapping;
+
+                //roadTex.repeat.y = 256;
+
+
+                let roadMat = new THREE.MeshBasicMaterial({map:roadTex});
+                let road1 = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 110 ), roadMat);
+                road1.rotation.x = - Math.PI / 2;
+
+                let road2 = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 110 ), roadMat);
+                road2.rotation.x = - Math.PI / 2;
+                road2.rotation.z = Math.PI / 2;
+
+
+                let road3 = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 110 ), roadMat);
+                road3.rotation.x = - Math.PI / 2;
+
+                let road4 = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 110 ), roadMat);
+                road4.rotation.x = - Math.PI / 2;
+                road4.rotation.z = Math.PI / 2;
+
+
+                let road5 = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 50 ), roadMat);
+                road5.rotation.x = - Math.PI / 2;
+
+                let road6 = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 80 ), roadMat);
+                road6.rotation.x = - Math.PI / 2;
+                road6.rotation.z = Math.PI / 2;
+
+
+                let road7 = new THREE.Mesh(new THREE.PlaneBufferGeometry( 10, 80 ), roadMat);
+                road7.rotation.x = - Math.PI / 2;
+
+
+                let finishLine = new THREE.Mesh( new THREE.CubeGeometry(10, 5,4), new THREE.MeshBasicMaterial({color:'red'}))
+
+                finishLine.position.set(-100,0,-60)
+
+
+                road1.position.set(0,0,-20)
+                road2.position.set(50,0,-80)
+                road3.position.set(100,0,-130)
+                road4.position.set(40,0,-180)
+                road5.position.set(-20,0,-160)
+                road6.position.set(-65,0,-140)
+                road7.position.set(-100,0,-100)
+
+                scene.add( road1 );
+                scene.add( road2 );
+                scene.add( road3 );
+                scene.add( road4 );
+                scene.add( road5 );
+                scene.add( road6 );
+                scene.add( road7 );
+                scene.add( finishLine );
+
+
+                // roads = [road1,road2,road3,road4,road5,road6,road7]
+
+                objLoader.load( './three/models/low/Model/barriers-scaled.obj', function ( bar ) {
+                    let y = -20
+                    for (let i = 0; i < 32; i++) {
+                        let roadBar = bar.clone()
+                        if (i%2 == 0) {
+                            roadBar.position.set(-5,y,0)
+                        } else {
+                            roadBar.position.set(5,y,0)
+                        }
+                        roadBar.rotation.x = Math.PI / 2;
+                        roadBar.rotation.y = Math.PI / 2;
+                        road1.add(roadBar)
+                        y +=2
+                    }
+
+                    var barriersBox = new THREE.Mesh( new THREE.CubeGeometry( 2, 100,2 ), new THREE.MeshBasicMaterial({color:'green'}) );
+                    //barriersBox.rotation.z = Math.PI / 2;
+
+                    barriersBox.position.set(-5,y-30,0)
+                    barriersBox.material.visible = false
+                    barriersBox.material.side = THREE.DoubleSide;
+
+                    collidableMeshList.push(barriersBox)
+
+                    road1.add(barriersBox)
+                })
+
+            }
+
+
+            function getRandomInt(min, max) {
+                min = Math.ceil(min);
+                max = Math.floor(max);
+                return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+            }
+
+            // function createScene() {
+            //     objLoader.load( '/three/models/scene.obj', function ( sc ) {
+            //         scene.add(sc)
+            //     })
+            // }
+
 			function createTrees() {
-              var objLoader = new THREE.OBJLoader();
 
               objLoader.load( '/three/models/tree.obj', function ( tree ) {
 
-                var treeBox = new THREE.Mesh( new THREE.CylinderGeometry( 1, 1, 10, 5), new THREE.MeshBasicMaterial({color:'green'}) );
-                treeBox.add(tree)
-                //treeBox.material.side.visible
-                treeBox.visible = false;
-                treeBox.position.set(-20,0,-10)
-                scene.add(treeBox)
-                collidableMeshList.push(treeBox)
+                for (let i = 0; i < 100; i++) {
+
+                    let x = getRandomInt(-250,250)
+                    let z = getRandomInt(-250,250)
+
+                    var treeBox = new THREE.Mesh( new THREE.CylinderGeometry( 1, 1, 10, 5), new THREE.MeshBasicMaterial({color:'green'}) );
+                    treeBox.add(tree.clone())
+                    treeBox.material.visible = false;
+                    treeBox.material.side = THREE.DoubleSide;
+
+                    treeBox.position.set(x,0,z)
+                    collidableMeshList.push(treeBox)
+                    scene.add(treeBox)
+
+                }
               })
 
+            }
+
+            function createMountains() {
+
+			    let x = 150
+                let z = 50
+
+
+                var mtlLoader = new THREE.MTLLoader();
+                mtlLoader.load( './three/models/low/Model/lowpolymountains.mtl', function( materials ) {
+                    objLoader.setMaterials( materials );
+                    objLoader.load( './three/models/low/Model/mountains-scaled.obj', function ( mountain ) {
+                        for (let i = 0; i < 4; i++) {
+                            let obj = mountain.clone()
+                            obj.position.set(x,-2,z)
+                            x -= 50
+                            z -= 50
+                            scene.add(obj)
+                        }
+
+
+                        for (let i = 0; i < 4; i++) {
+                            let obj = mountain.clone()
+                            obj.position.set(-x,-2,-z)
+                            x += 50
+                            z += 50
+                            scene.add(obj)
+                        }
+                    })
+                })
             }
 
 
@@ -219,16 +394,14 @@
 
                       let directionVector = globalVertex.sub( position );
 
-                      // console.log(localVertex, globalVertex, directionVector)
-
                       let ray = new THREE.Raycaster( position, directionVector.clone().normalize() );
 
                       let collisionResults = ray.intersectObjects( collidableMeshList );
 
-                        if ( collisionResults.length > 0 && collisionResults[0].distance < 3)
-                        {
-                          console.log(collisionResults)
 
+
+                        if ( collisionResults.length > 0 && collisionResults[0].distance <= 1)
+                        {
                           if (object.name == 'front') {
                               //console.log(bounceVal)
                               car.speed = -2
@@ -286,11 +459,9 @@
 					carModel.traverse( function ( child ) {
 
 						if ( child.isMesh  ) {
-
 							child.castShadow = true;
 							child.receiveShadow = true;
 							child.material.envMap = envMap;
-
 						}
 
 					} );
@@ -304,11 +475,7 @@
 					shadow.renderOrder = 2;
 					carModel.add( shadow );
 
-					let car2 = carModel.clone()
-                    car2.position.setZ(-100)
-
 					scene.add( physObject );
-                    scene.add( car2 );
 
 					// car parts for material selection
 					carParts.body.push( carModel.getObjectByName( 'body' ) );
@@ -381,6 +548,19 @@
 
 			}
 
+            function simulateKey(event,code) {
+                document.dispatchEvent(new KeyboardEvent(event,{'keyCode':code,cancelable: true}));
+            }
+
+
+            function handleGamePadKeys(btn, key) {
+                if (btn.pressed) {
+                    simulateKey('keydown', key)
+                } else {
+                    simulateKey('keyup', key)
+                }
+            }
+
 			function update() {
 
 				let delta = clock.getDelta();
@@ -394,8 +574,40 @@
 
                     checkCollision()
 
-				}
+                    if (false) {
+                        var gamepads = navigator.getGamepads();
 
+                        if (gamepads) {
+                            var pad = gamepads[0];
+
+                            pad.buttons.forEach((btn, index) => {
+                                if (index == 12) {
+                                    handleGamePadKeys(btn, 38)
+                                }
+
+                                if (index == 14) {
+                                    handleGamePadKeys(btn, 37)
+                                }
+
+                                if (index == 15) {
+                                    handleGamePadKeys(btn, 39)
+                                }
+
+                                if (index == 13) {
+                                    handleGamePadKeys(btn, 40)
+                                }
+
+                                if (index == 0) {
+                                    handleGamePadKeys(btn, 32)
+                                }
+
+                            })
+                        }
+                    }
+
+
+
+				}
 
 
 				stats.update();
@@ -403,6 +615,7 @@
 			}
 
             window.play.addEventListener( 'click', function () {
+
               document.body.requestPointerLock()
               window.blocker.style.display = 'none'
               init();
@@ -410,9 +623,14 @@
 
 
             window.addEventListener("gamepadconnected", function(e) {
+
+              gamepad =  e.gamepad
+
               console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
                 e.gamepad.index, e.gamepad.id,
                 e.gamepad.buttons.length, e.gamepad.axes.length);
+
+
             });
 		</script>
 

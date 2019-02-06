@@ -102,7 +102,10 @@ THREE.Car = ( function ( ) {
 
 		onKeyDown: function ( event ) {
 
+
+
 			switch ( event.keyCode ) {
+
 
 				case controlKeys.BRAKE:
 					controls.brake = true;
