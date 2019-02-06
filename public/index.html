@@ -43,6 +43,7 @@
 		<script src="./three/js/Car.js"></script>
 		<script src="./three/js/perlin.js"></script>
 		<script src="./three/js/WebGL.js"></script>
+		<script src="./three/js/vr/WebVR.js"></script>
 		<script src="./three/js/libs/stats.min.js"></script>
         <script src="./three/js/controls/PointerLockControls.js"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
@@ -82,23 +83,18 @@
 				glass: [],
 			};
 
-			let damping = 5.0;
-			let distance = 5;
-			let cameraTarget = new THREE.Vector3();
-			let origin = new THREE.Vector3();
-
 			function init() {
 
 				let container = document.getElementById( 'container' );
 
 				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 500 );
 
+
                 controls = new THREE.PointerLockControls( camera );
 
-                controls.getObject().position.set( -0.4, 1,0.25 )
+                controls.getObject().position.set(-0.4, 1,0.25)
 
 				scene = new THREE.Scene();
-				//scene.fog = new THREE.Fog( 0xd7cbb1, 1, 80 );
 
 				envMap = new THREE.CubeTextureLoader()
 					.setPath( './three/textures/skyboxsun25deg/')
@@ -146,11 +142,14 @@
                 lightHolder.add( shadowLight, shadowLight.target );
 
 
+
 				renderer = new THREE.WebGLRenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.gammaOutput = true;
 				renderer.shadowMap.enabled = true;
+                renderer.vr.enabled = false;
 				renderer.setSize( window.innerWidth, window.innerHeight );
+                document.body.appendChild( WEBVR.createButton( renderer ) );
 
 				container.appendChild( renderer.domElement );
 
