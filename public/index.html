@@ -58,7 +58,7 @@
 				document.body.appendChild( WEBGL.getWebGLErrorMessage() );
 			}
 
-			let camera, scene, renderer, stats, carModel, materialsLib, envMap, controls,physObject, gamepad, useGamepad
+			let camera, scene, renderer, stats, carModel, materialsLib, envMap, controls,physObject, gamepad, useGamepad, dolly
 
             const objLoader = new THREE.OBJLoader();
 
@@ -147,7 +147,7 @@
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.gammaOutput = true;
 				renderer.shadowMap.enabled = true;
-                renderer.vr.enabled = false;
+                renderer.vr.enabled = true;
 				renderer.setSize( window.innerWidth, window.innerHeight );
                 document.body.appendChild( WEBVR.createButton( renderer ) );
 
@@ -161,6 +161,14 @@
                 createMountains()
                 createRoad()
                 createTrees()
+
+
+                 dolly = new THREE.Group();
+                dolly.position.set(-0.4,-0.4,0);
+
+
+
+                dolly.add( camera );
 
 
 				window.addEventListener( 'resize', onWindowResize, false );
@@ -409,7 +417,7 @@
 					// add lightHolder to car so that the shadow will track the car as it moves
 					carModel.add( lightHolder );
 
-					carModel.add(controls.getObject())
+					carModel.add(dolly)
 
                     let physGeom = new THREE.CubeGeometry(2, 0.5,4);
                     let physMaterial = new THREE.MeshBasicMaterial({color:'yellow'});
@@ -552,34 +560,46 @@
 
                     checkCollision()
 
-                    if (useGamepad) {
-                        var gamepads = navigator.getGamepads();
+                    if (true) {
+                        let pad
+                        let gamepads = navigator.getGamepads();
+
+                        Object.keys(gamepads).forEach(function(key) {
+                            if (gamepads[key] != null) {
+                                if (gamepads[key].id === 'Wireless Controller') {
+                                     pad = gamepads[key]
+                                }
+                            }
+                        });
 
                         if (gamepads) {
-                            var pad = gamepads[0];
 
-                            pad.buttons.forEach((btn, index) => {
-                                if (index == 0) {
-                                    handleGamePadKeys(btn, 38)
-                                }
+                            if (pad) {
 
-                                if (index == 14) {
-                                    handleGamePadKeys(btn, 37)
-                                }
+                                pad.buttons.forEach((btn, index) => {
+                                    if (index == 0) {
+                                        handleGamePadKeys(btn, 38)
+                                    }
 
-                                if (index == 15) {
-                                    handleGamePadKeys(btn, 39)
-                                }
+                                    if (index == 14) {
+                                        handleGamePadKeys(btn, 37)
+                                    }
 
-                                if (index == 3) {
-                                    handleGamePadKeys(btn, 40)
-                                }
+                                    if (index == 15) {
+                                        handleGamePadKeys(btn, 39)
+                                    }
 
-                                if (index == 2) {
-                                    handleGamePadKeys(btn, 32)
-                                }
+                                    if (index == 3) {
+                                        handleGamePadKeys(btn, 40)
+                                    }
 
-                            })
+                                    if (index == 2) {
+                                        handleGamePadKeys(btn, 32)
+                                    }
+
+                                })
+                            }
+
                         }
                     }
 
@@ -602,13 +622,15 @@
 
             window.addEventListener("gamepadconnected", function(e) {
 
-              let res = confirm('use connected gamepad?')
+              // let res = confirm('use connected gamepad?')
+              //
+              //   if (res) {
+              //       useGamepad = true
+              //   } else {
+              //       useGamepad = false
+              //   }
 
-                if (res) {
-                    useGamepad = true
-                } else {
-                    useGamepad = false
-                }
+
 
               gamepad =  e.gamepad
 
