@@ -1,3 +1,7 @@
+# auto generated bundles
+public/game.bundle.js
+public/game.bundle.js.map
+
 # Logs
 logs
 *.log
