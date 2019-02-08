@@ -25,6 +25,17 @@ body {
     flex-direction: column;
 }
 
+.hidden {
+    display:none !important;
+}
+
+#ready-up {
+    position: absolute;
+    width: 200px;
+    height: 100px;
+    left: 48%;
+}
+
 #blocker button {
     height: 100%;
     width: 100%;
