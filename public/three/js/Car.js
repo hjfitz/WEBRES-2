@@ -222,6 +222,8 @@ THREE.Car = ( function ( ) {
 
 			var forwardDelta = - this.speed * delta;
 
+
+
 			carOrientation -= ( forwardDelta * this.turningRadius * 0.02 ) * wheelOrientation;
 
 			// movement of car
