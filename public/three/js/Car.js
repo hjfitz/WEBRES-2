@@ -41,21 +41,21 @@ THREE.Car = ( function ( ) {
 
 	var loaded = false;
 
-	var controls = {
-
-		brake: false,
-		moveForward: false,
-		moveBackward: false,
-		moveLeft: false,
-		moveRight: false
-
-	};
 
 	function Car( maxSpeed, acceleration, brakePower, turningRadius, keys ) {
 
 		this.enabled = true;
 
-		this.elemNames = {
+        this.controls = {
+          brake: false,
+          moveForward: false,
+          moveBackward: false,
+          moveLeft: false,
+          moveRight: false
+        };
+
+
+      this.elemNames = {
 			flWheel: 'wheel_fl',
 			frWheel: 'wheel_fr',
 			rlWheel: 'wheel_rl',
@@ -102,24 +102,24 @@ THREE.Car = ( function ( ) {
 
 		onKeyDown: function ( event ) {
 
-
+            unboundGetX.bind(module);
 
 			switch ( event.keyCode ) {
 
 
 				case controlKeys.BRAKE:
-					controls.brake = true;
-					controls.moveForward = false;
-					controls.moveBackward = false;
+					this.controls.brake = true;
+					this.controls.moveForward = false;
+					this.controls.moveBackward = false;
 					break;
 
-				case controlKeys.UP: controls.moveForward = true; break;
+				case controlKeys.UP: this.controls.moveForward = true; break;
 
-				case controlKeys.DOWN: controls.moveBackward = true; break;
+				case controlKeys.DOWN: this.controls.moveBackward = true; break;
 
-				case controlKeys.LEFT: controls.moveLeft = true; break;
+				case controlKeys.LEFT: this.controls.moveLeft = true; break;
 
-				case controlKeys.RIGHT: controls.moveRight = true; break;
+				case controlKeys.RIGHT: this.controls.moveRight = true; break;
 
 			}
 
@@ -129,15 +129,15 @@ THREE.Car = ( function ( ) {
 
 			switch ( event.keyCode ) {
 
-				case controlKeys.BRAKE: controls.brake = false; break;
+				case controlKeys.BRAKE: this.controls.brake = false; break;
 
-				case controlKeys.UP: controls.moveForward = false; break;
+				case controlKeys.UP: this.controls.moveForward = false; break;
 
-				case controlKeys.DOWN: controls.moveBackward = false; break;
+				case controlKeys.DOWN: this.controls.moveBackward = false; break;
 
-				case controlKeys.LEFT: controls.moveLeft = false; break;
+				case controlKeys.LEFT: this.controls.moveLeft = false; break;
 
-				case controlKeys.RIGHT: controls.moveRight = false; break;
+				case controlKeys.RIGHT: this.controls.moveRight = false; break;
 
 			}
 
@@ -156,36 +156,36 @@ THREE.Car = ( function ( ) {
 
 			var brakingDeceleration = 1;
 
-			if ( controls.brake ) brakingDeceleration = this.brakePower;
+			if ( this.controls.brake ) brakingDeceleration = this.brakePower;
 
-			if ( controls.moveForward ) {
+			if ( this.controls.moveForward ) {
 
 				this.speed = THREE.Math.clamp( this.speed + delta * this.acceleration, maxSpeedReverse, this.maxSpeed );
 				acceleration = THREE.Math.clamp( acceleration + delta, - 1, 1 );
 
 			}
 
-			if ( controls.moveBackward ) {
+			if ( this.controls.moveBackward ) {
 
 				this.speed = THREE.Math.clamp( this.speed - delta * accelerationReverse, maxSpeedReverse, this.maxSpeed );
 				acceleration = THREE.Math.clamp( acceleration - delta, - 1, 1 );
 
 			}
 
-			if ( controls.moveLeft ) {
+			if ( this.controls.moveLeft ) {
 
 				wheelOrientation = THREE.Math.clamp( wheelOrientation + delta * steeringWheelSpeed, - maxSteeringRotation, maxSteeringRotation );
 
 			}
 
-			if ( controls.moveRight ) {
+			if ( this.controls.moveRight ) {
 
 				wheelOrientation = THREE.Math.clamp( wheelOrientation - delta * steeringWheelSpeed, - maxSteeringRotation, maxSteeringRotation );
 
 			}
 
 			// this.speed decay
-			if ( ! ( controls.moveForward || controls.moveBackward ) ) {
+			if ( ! ( this.controls.moveForward || this.controls.moveBackward ) ) {
 
 				if ( this.speed > 0 ) {
 
@@ -206,7 +206,7 @@ THREE.Car = ( function ( ) {
 			}
 
 			// steering decay
-			if ( ! ( controls.moveLeft || controls.moveRight ) ) {
+			if ( ! ( this.controls.moveLeft || this.controls.moveRight ) ) {
 
 				if ( wheelOrientation > 0 ) {
 
@@ -221,6 +221,8 @@ THREE.Car = ( function ( ) {
 			}
 
 			var forwardDelta = - this.speed * delta;
+
+
 
 			carOrientation -= ( forwardDelta * this.turningRadius * 0.02 ) * wheelOrientation;
 
