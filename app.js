@@ -36,15 +36,6 @@ io.on('connection', (socket) => {
       console.log('seems everyone is ready, lets roll');
       io.emit('go-private');
     }
-
-    // players.map((p) => {
-    //   readyCount++
-    //   if (p.ready) {
-    //     readyCount++
-    //   }
-    //
-    //
-    // })
   });
 
   socket.on('disconnect', () => {
@@ -52,7 +43,7 @@ io.on('connection', (socket) => {
     players.forEach((player, index) => {
       if (socket.id === player.id) {
         players.splice(index, 1);
-        readyCount = 0;
+        ready.splice(ready.indexOf(socket.id), 1);
       }
     });
   });
