@@ -14,7 +14,7 @@ const p2p = require('socket.io-p2p-server').Server;
 io.use(p2p);
 
 const players = [];
-let readyCount = 0;
+const ready = [];
 
 io.on('connection', (socket) => {
   console.log('connected', socket.id);
@@ -27,7 +27,8 @@ io.on('connection', (socket) => {
 
   socket.on('ready-up', () => {
     console.log(`${socket.id} is ready`);
-    readyCount += 1;
+    if (!ready.includes(socket.id)) ready.push(socket.id);
+    const readyCount = ready.length;
 
     console.log(readyCount, io.engine.clientsCount);
 
